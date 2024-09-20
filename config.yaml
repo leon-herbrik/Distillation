@@ -1,0 +1,22 @@
+trainer:
+  batch_size: 64
+  seed: 42
+dataset:
+  target_feature_path: '~/GroundVQA/data/unified/egovlp_internvideo_subsampled.hdf5'
+  input_feature_path: '~/vqgancodes/vqgan_codes_nlq_train_val_test.hdf5'
+model:
+  img_size: 256
+  hidden_dim: 768
+  codebook_size: 1024
+  depth: 8
+  heads: 8
+  mlp_dim: 3072
+  dropout: 0.1
+  nclass: 0
+  special_tokens:
+    - '[feat]'
+    - '[mask]'
+  vqgan_embedding_path: '~/GroundVQA/checkpoints/vqgan/embeddings.pth'
+  transformer_embedding_path: '~/GroundVQA/checkpoints/transformer/embeddings.pth'
+  last_linear_dim: 2304
+  loss: 'mse'
