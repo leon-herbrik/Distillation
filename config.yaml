@@ -4,6 +4,7 @@ trainer:
 dataset:
   target_feature_path: '~/GroundVQA/data/unified/egovlp_internvideo_subsampled.hdf5'
   input_feature_path: '~/vqgancodes/vqgan_codes_nlq_train_val_test.hdf5'
+  split_index_path: '~/Distillation/dataset/split_ids.json'
 model:
   img_size: 256
   hidden_dim: 768

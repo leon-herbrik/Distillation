@@ -10,7 +10,7 @@ class LightningModule(L.LightningModule):
     def __init__(self, config):
         super().__init__()
         self.model = GroundingTransformer(**config['model'])
-        self.loss = self._get_loss(config['loss'])
+        self.loss = self._get_loss(config['model']['loss'])
 
     def training_step(self, batch, batch_idx):
         x, y = batch
