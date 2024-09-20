@@ -1,4 +1,5 @@
 import os
+import sys
 
 import yaml
 import lightning as L
@@ -19,7 +20,9 @@ def train():
     if are_all_A100():
         torch.set_float32_matmul_precision("medium")
 
-    config = yaml.safe_load(open("config.yaml"))
+    config_path = sys.argv[1] if len(sys.argv) > 1 else "config.yaml"
+
+    config = yaml.safe_load(open(config_path))
     model = LightningModule(config['model'])
     train_dataset = h5Dataset(**config['dataset'], split='train')
     train_dataloader = DataLoader(train_dataset,
@@ -34,11 +37,11 @@ def train():
     logger = WandbLogger(**config['logger'])
     trainer = Trainer(**config['trainer']['pl_trainer'], logger=logger)
 
-    # Start by tuning.
-    tuner = Tuner(trainer)
-    lr_finder = tuner.lr_find(model, train_dataloader, val_dataloader)
-    fig = lr_finder.plot(suggest=True)
-    fig.savefig("lr_finder.png")
+    # # Start by tuning.
+    # tuner = Tuner(trainer)
+    # lr_finder = tuner.lr_find(model, train_dataloader, val_dataloader)
+    # fig = lr_finder.plot(suggest=True)
+    # fig.savefig("lr_finder.png")
 
     trainer.fit(model, train_dataloader, val_dataloader)
 

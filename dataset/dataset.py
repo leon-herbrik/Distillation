@@ -136,7 +136,11 @@ class h5Dataset(Dataset):
         if not (path := P(f"{name}.json")).exists():
             # Create the file.
             json.dump({}, open(path, 'w'))
-        if not self.split in (data := json.load(open(path))):
+        try:
+            data = json.load(open(path))
+        except json.JSONDecodeError:
+            data = {}
+        if not self.split in data:
             int_index = []
             for id, file_name in tqdm(index.items(),
                                       total=len(index),
