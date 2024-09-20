@@ -11,7 +11,7 @@ dataset:
   split_index_path: '~/Distillation/dataset/split_ids.json'
 model:
   img_size: 256
-  seq_len: 4096
+  seq_len: 256
   hidden_dim: 1280
   codebook_size: 1024
   depth: 12
