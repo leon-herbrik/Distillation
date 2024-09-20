@@ -11,10 +11,11 @@ dataset:
   split_index_path: '~/Distillation/dataset/split_ids.json'
 model:
   img_size: 256
-  hidden_dim: 768
+  hidden_dim: 1280
   codebook_size: 1024
   depth: 16
   heads: 8
+  lr: 1.0e-4
   mlp_dim: 3072
   dropout: 0.1
   nclass: 0
@@ -22,6 +23,8 @@ model:
     - '[feat]'
     - '[mask]'
   last_linear_dim: 2304
-  loss: 'mse'
+  loss: 'mae'
+  vqgan_embedding_path: '~/GroundVQA/checkpoints/vqgan/embeddings.pth'
+  transformer_embedding_path: '~/GroundVQA/checkpoints/transformer/embeddings.pth'
 logger:
   project: 'Distillation-debug'

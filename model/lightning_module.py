@@ -11,6 +11,7 @@ class LightningModule(L.LightningModule):
         super().__init__()
         self.model = GroundingTransformer(**config)
         self.loss = self._get_loss(config['loss'])
+        self.lr = config['lr']
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -27,7 +28,7 @@ class LightningModule(L.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=3e-4)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         return optimizer
 
     def _get_loss(self, name):
