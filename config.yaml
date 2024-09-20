@@ -1,6 +1,10 @@
 trainer:
-  batch_size: 64
+  batch_size: 32
   seed: 42
+  pl_trainer:
+    limit_train_batches: 500
+    limit_val_batches: 100
+    max_epochs: 100
 dataset:
   target_feature_path: '~/GroundVQA/data/unified/egovlp_internvideo_subsampled.hdf5'
   input_feature_path: '~/vqgancodes/vqgan_codes_nlq_train_val_test.hdf5'
@@ -9,7 +13,7 @@ model:
   img_size: 256
   hidden_dim: 768
   codebook_size: 1024
-  depth: 8
+  depth: 16
   heads: 8
   mlp_dim: 3072
   dropout: 0.1
@@ -17,7 +21,7 @@ model:
   special_tokens:
     - '[feat]'
     - '[mask]'
-  vqgan_embedding_path: '~/GroundVQA/checkpoints/vqgan/embeddings.pth'
-  transformer_embedding_path: '~/GroundVQA/checkpoints/transformer/embeddings.pth'
   last_linear_dim: 2304
   loss: 'mse'
+logger:
+  project: 'Distillation-debug'

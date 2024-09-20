@@ -9,18 +9,25 @@ class LightningModule(L.LightningModule):
 
     def __init__(self, config):
         super().__init__()
-        self.model = GroundingTransformer(**config['model'])
-        self.loss = self._get_loss(config['model']['loss'])
+        self.model = GroundingTransformer(**config)
+        self.loss = self._get_loss(config['loss'])
 
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.model(x)
         loss = self.loss(y_hat, y)
-        self.log('train_loss', loss)
+        self.log('train_loss', loss, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.model(x)
+        loss = self.loss(y_hat, y)
+        self.log('val_loss', loss, prog_bar=True)
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=3e-4)
         return optimizer
 
     def _get_loss(self, name):
