@@ -7,12 +7,13 @@ import lightning as L
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.tuner import Tuner
+from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader
 import torch
 
 from dataset.dataset import h5Dataset
 from model.lightning_module import LightningModule
-from util.util import are_all_A100
+from util.util import are_all_A100, model_name
 
 
 def train():
@@ -25,6 +26,16 @@ def train():
         sys.argv) > 1 else "config_bender_1_frame.yaml"
 
     config = yaml.safe_load(open(config_path))
+
+    model_name = model_name(config)
+    checkpoint_callback = ModelCheckpoint(
+        save_top_k=1,
+        monitor='val_loss',
+        mode='min',
+        filename=model_name + "-{epoch:02d}-{val_loss:.2f}",
+        dirpath='./checkpoints',
+    )
+
     model = LightningModule(config['model'])
     vocabulary = model.model.vocabulary
     # Create collate function arguments.
@@ -56,7 +67,9 @@ def train():
                                 num_workers=128,
                                 collate_fn=val_dataset.collate_fn)
     logger = WandbLogger(**config['logger'])
-    trainer = Trainer(**config['trainer']['pl_trainer'], logger=logger)
+    trainer = Trainer(**config['trainer']['pl_trainer'],
+                      logger=logger,
+                      callbacks=[checkpoint_callback])
 
     # # Start by tuning.
     # tuner = Tuner(trainer)
