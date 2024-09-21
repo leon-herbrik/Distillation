@@ -6,8 +6,11 @@ import json
 import yaml
 import torch
 from torch.utils.data import Dataset
+from torch.utils.data.dataloader import default_collate
 import h5py
 from tqdm import tqdm
+
+from .collate_functions import *
 
 
 @dataclass
@@ -15,9 +18,23 @@ class h5Dataset(Dataset):
     target_feature_path: str
     input_feature_path: str
     split_index_path: str
+    input_int_index_path: str
+    target_int_index_path: str
     split: str
+    subsample_types: list = None
+    num_frames: int = 1
+    keep_percentage: float = None
     context_size: int = 16
+    context_before: int = 0
+    context_after: int = 0
     target_context_size: int = 1
+    img_size: int = 256
+    mask_token: int = 3072
+    feature_token: int = 3073
+    sep_token: int = 3074
+    codebook_size: int = 1024
+    past_shift: int = 1024
+    future_shift: int = 2048
 
     def __post_init__(self):
         self.split_index = json.load(
@@ -30,7 +47,7 @@ class h5Dataset(Dataset):
             f"Loaded target index from {self.target_feature_path} with {len(self.target_index)} keys."
         )
         self.target_int_index = self._create_integer_based_index(
-            self.target_index, self.target_context_size, 'target_int_index')
+            self.target_index, self.target_context_size, 'target')
 
         self.input_files = self._collect_files(self.input_feature_path)
         self.input_index = self._concatenate_index(self.input_files,
@@ -40,7 +57,7 @@ class h5Dataset(Dataset):
             f"Loaded input index from {self.input_feature_path} with {len(self.input_index)} keys."
         )
         self.input_int_index = self._create_integer_based_index(
-            self.input_index, self.context_size, 'input_int_index')
+            self.input_index, self.context_size, 'input')
 
         if len(self.input_int_index) != len(self.target_int_index):
             raise ValueError(
@@ -133,7 +150,9 @@ class h5Dataset(Dataset):
         """
         # Check if the index already exits and load it.
         # If it does not exist, create it and store it.
-        if not (path := P(f"{name}.json")).exists():
+        path = P(self.input_int_index_path if name ==
+                 'input' else self.target_int_index_path).expanduser()
+        if not path.exists():
             # Create the file.
             json.dump({}, open(path, 'w'))
         try:
@@ -154,6 +173,62 @@ class h5Dataset(Dataset):
             data[self.split] = int_index
         json.dump(data, open(path, 'w'))
         return data[self.split]
+
+    def collate_fn(self, batch):
+        """Collate function that combines tokens from context during loading."""
+        batch = default_collate(batch)
+        # Get arguments.
+        mask_token = self.mask_token
+        subsample_types = self.subsample_types
+        keep_percentage = self.keep_percentage
+        context_before = self.context_before
+        context_after = self.context_after
+        codebook_size = self.codebook_size
+        past_shift = self.past_shift
+        future_shift = self.future_shift
+        feature_token = self.feature_token
+        sep_token = self.sep_token
+        num_frames = self.num_frames
+        x, y = batch
+        # Select frame indices from the input tensor.
+        positions = get_selected_frame_indices(x.size(1), num_frames)
+        # Subsample the codes.
+        masked_code, mask = get_mask_code(
+            x,
+            mode="linear",
+            subsample_types=subsample_types,
+            keep_percentage=keep_percentage,
+            mask_value=mask_token,
+            codebook_size=codebook_size,
+        )
+        if context_before > 0 or context_after > 0:
+            combined_masks = []
+            masked_codes = []
+            for position in positions:
+                # Goes from B, T, H, W to B, H, W
+                curr_masked_code, combined_mask = combine_tokens_from_temporal_context(
+                    tokens=masked_code,
+                    masks=mask,
+                    frames_before=context_before,
+                    frames_after=context_after,
+                    position=position,
+                    past_shift=past_shift,
+                    future_shift=future_shift,
+                    mask_value=mask_token,
+                )
+                masked_codes.append(curr_masked_code)
+                combined_masks.append(combined_mask)
+            # Concat along the T dimension -> B, num_frames, H, W
+            masked_codes = torch.stack(masked_codes, dim=1)
+            masked_code = masked_codes
+        else:
+            # Select num_frames frames from the input tensor.
+            masked_code = select_frames(masked_code, num_frames)
+        masked_code = prepend_separator(masked_code, sep_token)
+        masked_code = prepend_feature_token(masked_code, feature_token)
+        x, y = masked_code.to(torch.int64), y.to(torch.float32)
+        batch = (x, y)
+        return batch
 
 
 def test():

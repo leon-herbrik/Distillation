@@ -1,5 +1,6 @@
 import os
 import sys
+from functools import partial
 
 import yaml
 import lightning as L
@@ -20,20 +21,40 @@ def train():
     if are_all_A100():
         torch.set_float32_matmul_precision("medium")
 
-    config_path = sys.argv[1] if len(sys.argv) > 1 else "config.yaml"
+    config_path = sys.argv[1] if len(
+        sys.argv) > 1 else "config_bender_1_frame.yaml"
 
     config = yaml.safe_load(open(config_path))
     model = LightningModule(config['model'])
-    train_dataset = h5Dataset(**config['dataset'], split='train')
+    vocabulary = model.model.vocabulary
+    # Create collate function arguments.
+    collate_fn_args = {
+        'mask_token': vocabulary['[mask]'],
+        'codebook_size': config['model']['codebook_size'],
+        'past_shift': vocabulary.past_shift,
+        'future_shift': vocabulary.future_shift,
+        'feature_token': vocabulary['[feat]'],
+        'sep_token': vocabulary['[sep]'],
+    }
+
+    train_dataset = h5Dataset(
+        **config['dataset'],
+        split='train',
+        **collate_fn_args,
+    )
     train_dataloader = DataLoader(train_dataset,
                                   batch_size=config['trainer']['batch_size'],
                                   shuffle=True,
-                                  num_workers=128)
-    val_dataset = h5Dataset(**config['dataset'], split='val')
+                                  num_workers=128,
+                                  collate_fn=train_dataset.collate_fn)
+    val_dataset = h5Dataset(**config['dataset'],
+                            split='val',
+                            **collate_fn_args)
     val_dataloader = DataLoader(val_dataset,
                                 batch_size=config['trainer']['batch_size'],
                                 shuffle=False,
-                                num_workers=128)
+                                num_workers=128,
+                                collate_fn=val_dataset.collate_fn)
     logger = WandbLogger(**config['logger'])
     trainer = Trainer(**config['trainer']['pl_trainer'], logger=logger)
 
