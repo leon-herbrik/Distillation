@@ -4,3 +4,5 @@
 __pycache__/
 wandb/
 Distillation-debug/
+
+lightning_logs/

@@ -87,7 +87,7 @@ class h5Dataset(Dataset):
         # Load target.
         with h5py.File(self.target_index[id], 'r') as data:
             target = torch.from_numpy(data[id][:])
-        return input, target
+        return input, target, id
 
     def __len__(self):
         """
@@ -108,7 +108,7 @@ class h5Dataset(Dataset):
             target = torch.from_numpy(data[target_id][target_start:target_end])
         # Remove leading singleton dimensions.
         input, target = input.squeeze(0), target.squeeze(0)
-        return input, target
+        return input, target, input_slice
 
     def _collect_files(self, path):
         path = P(path).expanduser()
@@ -189,7 +189,7 @@ class h5Dataset(Dataset):
         feature_token = self.feature_token
         sep_token = self.sep_token
         num_frames = self.num_frames
-        x, y = batch
+        x, y, key = batch
         # Select frame indices from the input tensor.
         positions = get_selected_frame_indices(x.size(1), num_frames)
         # Subsample the codes.
@@ -227,7 +227,7 @@ class h5Dataset(Dataset):
         masked_code = prepend_separator(masked_code, sep_token)
         masked_code = prepend_feature_token(masked_code, feature_token)
         x, y = masked_code.to(torch.int64), y.to(torch.float32)
-        batch = (x, y)
+        batch = (x, y, key)
         return batch
 
 

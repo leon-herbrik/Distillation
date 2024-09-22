@@ -14,18 +14,23 @@ class LightningModule(L.LightningModule):
         self.lr = config['lr']
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
+        x, y, key = batch
         y_hat = self.model(x)
         loss = self.loss(y_hat, y)
         self.log('train_loss', loss, prog_bar=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
+        x, y, key = batch
         y_hat = self.model(x)
         loss = self.loss(y_hat, y)
         self.log('val_loss', loss, prog_bar=True, sync_dist=True)
         return loss
+
+    def predict_step(self, batch, batch_idx):
+        x, y, key = batch
+        y_hat = self.model(x)
+        return y_hat, key
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)

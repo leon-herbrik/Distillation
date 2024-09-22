@@ -1,9 +1,7 @@
 trainer:
-  batch_size: 32
+  batch_size: 1
   seed: 42
   pl_trainer:
-    limit_train_batches: 0.25
-    limit_val_batches: 0.25
     max_epochs: 1000
 dataset:
   target_feature_path: '~/GroundVQA/data/unified/egovlp_internvideo_subsampled.hdf5'
