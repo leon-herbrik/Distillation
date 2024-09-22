@@ -13,7 +13,7 @@ import torch
 
 from dataset.dataset import h5Dataset
 from model.lightning_module import LightningModule
-from util.util import are_all_A100, model_name
+from util.util import are_all_A100, get_model_name
 
 
 def train():
@@ -25,9 +25,11 @@ def train():
     config_path = sys.argv[1] if len(
         sys.argv) > 1 else "config_bender_1_frame.yaml"
 
+    print(f"Starting run from config file: {config_path}.")
+    
     config = yaml.safe_load(open(config_path))
 
-    model_name = model_name(config)
+    model_name = get_model_name(config)
     checkpoint_callback = ModelCheckpoint(
         save_top_k=1,
         monitor='val_loss',
@@ -56,7 +58,7 @@ def train():
     train_dataloader = DataLoader(train_dataset,
                                   batch_size=config['trainer']['batch_size'],
                                   shuffle=True,
-                                  num_workers=128,
+                                  num_workers=120,
                                   collate_fn=train_dataset.collate_fn)
     val_dataset = h5Dataset(**config['dataset'],
                             split='val',
@@ -64,7 +66,7 @@ def train():
     val_dataloader = DataLoader(val_dataset,
                                 batch_size=config['trainer']['batch_size'],
                                 shuffle=False,
-                                num_workers=128,
+                                num_workers=120,
                                 collate_fn=val_dataset.collate_fn)
     logger = WandbLogger(**config['logger'])
     trainer = Trainer(**config['trainer']['pl_trainer'],

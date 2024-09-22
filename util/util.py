@@ -12,7 +12,7 @@ def are_all_A100():
     return all("A100" in gpu for gpu in gpus)
 
 
-def model_name(config):
+def get_model_name(config):
     base = "GT"
     depth = config['model']['depth']
     num_frames = config['dataset']['num_frames']
